@@ -1,5 +1,7 @@
 import sys, os
 import argparse
+import json
+import pprint
 from time import time
 sys.path.append(os.getcwd())
 from Process.process import *
@@ -13,7 +15,7 @@ from tools.evaluate import *
 from model.EBGCN import EBGCN
 
 
-def train_model(treeDic, x_test, x_train, args, iter):
+def train_model(treeDic, x_test, x_train, args, iter,commentary=""):
     model = EBGCN(args).to(args.device)
     TD_params = list(map(id, model.TDrumorGCN.conv1.parameters()))
     TD_params += list(map(id, model.TDrumorGCN.conv2.parameters()))
@@ -36,7 +38,7 @@ def train_model(treeDic, x_test, x_train, args, iter):
     early_stopping = EarlyStopping(patience=args.patience, verbose=True)
 
     for epoch in range(args.n_epochs):
-        traindata_list, testdata_list = loadData(args.datasetname, treeDic, x_train, x_test, args.TDdroprate, args.BUdroprate)
+        traindata_list, testdata_list = loadBiData(args.datasetname, treeDic, x_train, x_test, args.TDdroprate, args.BUdroprate)
         train_loader = DataLoader(traindata_list, batch_size=args.batchsize, shuffle=True, num_workers=args.num_workers)
         test_loader = DataLoader(testdata_list, batch_size=args.batchsize, shuffle=False, num_workers=args.num_workers)
         avg_loss = []
@@ -44,6 +46,7 @@ def train_model(treeDic, x_test, x_train, args, iter):
         batch_idx = 0
         for Batch_data in train_loader:
             Batch_data.to(args.device)
+            # print(Batch_data)
             out_labels,  TD_edge_loss, BU_edge_loss = model(Batch_data)
             loss = F.nll_loss(out_labels, Batch_data.y)
             if TD_edge_loss is not None:
@@ -76,6 +79,8 @@ def train_model(treeDic, x_test, x_train, args, iter):
         temp_val_Acc3, temp_val_Prec3, temp_val_Recll3, temp_val_F3, \
         temp_val_Acc4, temp_val_Prec4, temp_val_Recll4, temp_val_F4 = [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], [], []
         model.eval()
+        rawcounts = {1:{"TP":0,"FP":0,"FN":0,"TN":0},2:{"TP":0,"FP":0,"FN":0,"TN":0},3:{"TP":0,"FP":0,"FN":0,"TN":0},4:{"TP":0,"FP":0,"FN":0,"TN":0}}
+
         for Batch_data in test_loader:
             Batch_data.to(args.device)
             val_out, _, _ = model(Batch_data)
@@ -84,7 +89,7 @@ def train_model(treeDic, x_test, x_train, args, iter):
             _, val_pred = val_out.max(dim=1)
             correct = val_pred.eq(Batch_data.y).sum().item()
             val_acc = correct / len(Batch_data.y)
-            Acc_all, Acc1, Prec1, Recll1, F1, Acc2, Prec2, Recll2, F2, Acc3, Prec3, Recll3, F3, Acc4, Prec4, Recll4, F4 = evaluation4class(
+            Acc_all, Acc1, Prec1, Recll1, F1, Acc2, Prec2, Recll2, F2, Acc3, Prec3, Recll3, F3, Acc4, Prec4, Recll4, F4, rawdict = evaluation4class(
                 val_pred, Batch_data.y)
             temp_val_Acc_all.append(Acc_all), temp_val_Acc1.append(Acc1), temp_val_Prec1.append(
                 Prec1), temp_val_Recll1.append(Recll1), temp_val_F1.append(F1), \
@@ -95,6 +100,9 @@ def train_model(treeDic, x_test, x_train, args, iter):
             temp_val_Acc4.append(Acc4), temp_val_Prec4.append(Prec4), temp_val_Recll4.append(
                 Recll4), temp_val_F4.append(F4)
             temp_val_accs.append(val_acc)
+            for classy in rawdict:
+                for resultant_type in rawdict[classy]:
+                    rawcounts[classy][resultant_type] = rawdict[classy][resultant_type] + rawcounts[classy][resultant_type]
         val_losses.append(np.mean(temp_val_losses))
         val_accs.append(np.mean(temp_val_accs))
         print("Epoch {:05d} | Val_Loss {:.4f}| Val_Accuracy {:.4f}".format(epoch, np.mean(temp_val_losses),
@@ -110,6 +118,11 @@ def train_model(treeDic, x_test, x_train, args, iter):
                'C4:{:.4f},{:.4f},{:.4f},{:.4f}'.format(np.mean(temp_val_Acc4), np.mean(temp_val_Prec4),
                                                        np.mean(temp_val_Recll4), np.mean(temp_val_F4))]
         print('results:', res)
+        print(commentary,'results:', res)
+        print(commentary,"rawcounts:")
+        pprint.pprint(rawcounts)
+        
+        
         early_stopping(np.mean(temp_val_losses), np.mean(temp_val_accs), np.mean(temp_val_F1), np.mean(temp_val_F2),
                        np.mean(temp_val_F3), np.mean(temp_val_F4), model, 'BiGCN', args.datasetname)
         accs = np.mean(temp_val_accs)
@@ -125,7 +138,7 @@ def train_model(treeDic, x_test, x_train, args, iter):
             F3 = early_stopping.F3
             F4 = early_stopping.F4
             break
-    return accs, F1, F2, F3, F4
+    return train_losses , val_losses ,train_accs, val_accs,accs,F1,F2,F3,F4
 
 
 def init_seeds(seed=2020):
@@ -155,7 +168,7 @@ if __name__ == '__main__':
                         help='dimension of output features')
     parser.add_argument('--num_class', type=int, default=4, metavar='numclass',
                         help='number of classes')
-    parser.add_argument('--num_workers', type=int, default=30, metavar='num_workers',
+    parser.add_argument('--num_workers', type=int, default=0, metavar='num_workers',
                         help='number of workers for training')
 
     # Parameters for training the model
@@ -201,7 +214,11 @@ if __name__ == '__main__':
     parser.add_argument('--edge_num', type=int, default=2, metavar='edgenum', help='latent relation types T in the edge inference')
 
     args = parser.parse_args()
-
+    if args.datasetname.lower()=="pheme":
+        args.input_features=768*256 # bert shape.
+        args.batchsize=12 # bert kinda thing.
+        
+        
     if not args.no_cuda:
         print('Running on GPU:{}'.format(args.num_cuda))
         args.device = torch.device('cuda:{}'.format(args.num_cuda) if torch.cuda.is_available() else 'cpu')
@@ -213,48 +230,75 @@ if __name__ == '__main__':
     init_seeds(seed=args.seed)
 
     total_accs, total_NR_F1, total_FR_F1, total_TR_F1, total_UR_F1 = [], [], [], [], []
-    treeDic = loadTree(args.datasetname)
+    if args.datasetname.lower()=="pheme":
+        treeDic={}
+    else:
+        treeDic = loadTree(args.datasetname)
+    if args.datasetname.lower()!="pheme":
+        for iter in range(args.iterations):
+            iter_timestamp = time()
+            # fold_tests, fold_trains = load5foldData(args.datasetname)
+            fold_tests, fold_trains = load5foldData(args.datasetname, seed=args.seed)
 
-    for iter in range(args.iterations):
-        iter_timestamp = time()
-        # fold_tests, fold_trains = load5foldData(args.datasetname)
-        fold_tests, fold_trains = load5foldData(args.datasetname, seed=args.seed)
+            accs, NR_F1, FR_F1, TR_F1, UR_F1 = [], [], [], [], []
+            for fold_idx in range(5):
+                fold_timestamp = time()
+                _, __, ___, ____, acc, F1, F2, F3, F4 = train_model(treeDic, fold_tests[fold_idx], fold_trains[fold_idx], args, iter)
+                accs.append(acc)
+                NR_F1.append(F1)
+                FR_F1.append(F2)
+                TR_F1.append(F3)
+                UR_F1.append(F4)
 
-        accs, NR_F1, FR_F1, TR_F1, UR_F1 = [], [], [], [], []
-        for fold_idx in range(5):
-            fold_timestamp = time()
-            acc, F1, F2, F3, F4 = train_model(treeDic, fold_tests[fold_idx], fold_trains[fold_idx], args, iter)
-            accs.append(acc)
-            NR_F1.append(F1)
-            FR_F1.append(F2)
-            TR_F1.append(F3)
-            UR_F1.append(F4)
+                print("Iter:{}/{}\tFold:{}/5 - Acc:{:.4f}\tNR_F1:{:.4f}\tFR_F1:{:.4f}\tTR_F1:{:.4f}\tUR_F1:{:.4f}\tTime:{:.4f}s".format(
+                        iter, args.iterations,
+                        fold_idx,
+                        acc, F1, F2, F3, F4,
+                        time() - fold_timestamp))
 
-            print("Iter:{}/{}\tFold:{}/5 - Acc:{:.4f}\tNR_F1:{:.4f}\tFR_F1:{:.4f}\tTR_F1:{:.4f}\tUR_F1:{:.4f}\tTime:{:.4f}s".format(
-                    iter, args.iterations,
-                    fold_idx,
-                    acc, F1, F2, F3, F4,
-                    time() - fold_timestamp))
+            total_accs.append(np.mean(accs))
+            total_NR_F1.append(np.mean(NR_F1))
+            total_FR_F1.append(np.mean(FR_F1))
+            total_TR_F1.append(np.mean(TR_F1))
+            total_UR_F1.append(np.mean(UR_F1))
 
-        total_accs.append(np.mean(accs))
-        total_NR_F1.append(np.mean(NR_F1))
-        total_FR_F1.append(np.mean(FR_F1))
-        total_TR_F1.append(np.mean(TR_F1))
-        total_UR_F1.append(np.mean(UR_F1))
+            print("****  Iteration Result {}/{} Time:{:.4f}s  ****".format(iter, args.iterations, time() - iter_timestamp))
+            print("Acc:{:.4f}\tNR_F1:{:.4f}\tFR_F1:{:.4f}\tTR_F1:{:.4f}\tUR_F1:{:.4f}\t\tavg_F1:{:.4f}".format(np.mean(accs),
+                                                                                                             np.mean(NR_F1),
+                                                                                                             np.mean(FR_F1),
+                                                                                                             np.mean(TR_F1),
+                                                                                                             np.mean(UR_F1),
+                                                                                                             (np.mean(NR_F1) + np.mean(FR_F1) + np.mean(TR_F1) + np.mean(UR_F1)) / 4))
 
-        print("****  Iteration Result {}/{} Time:{:.4f}s  ****".format(iter, args.iterations, time() - iter_timestamp))
-        print("Acc:{:.4f}\tNR_F1:{:.4f}\tFR_F1:{:.4f}\tTR_F1:{:.4f}\tUR_F1:{:.4f}\t\tavg_F1:{:.4f}".format(np.mean(accs),
-                                                                                                         np.mean(NR_F1),
-                                                                                                         np.mean(FR_F1),
-                                                                                                         np.mean(TR_F1),
-                                                                                                         np.mean(UR_F1),
-                                                                                                         (np.mean(NR_F1) + np.mean(FR_F1) + np.mean(TR_F1) + np.mean(UR_F1)) / 4))
+        print("****  Total Result  ****")
+        print("Acc:{:.4f}\tNR_F1:{:.4f}\tFR_F1:{:.4f}\tTR_F1:{:.4f}\tUR_F1:{:.4f}".format(np.mean(total_accs),
+                                                                                          np.mean(total_NR_F1),
+                                                                                          np.mean(total_FR_F1),
+                                                                                          np.mean(total_TR_F1),
+                                                                                          np.mean(total_UR_F1)))
 
-    print("****  Total Result  ****")
-    print("Acc:{:.4f}\tNR_F1:{:.4f}\tFR_F1:{:.4f}\tTR_F1:{:.4f}\tUR_F1:{:.4f}".format(np.mean(total_accs),
-                                                                                      np.mean(total_NR_F1),
-                                                                                      np.mean(total_FR_F1),
-                                                                                      np.mean(total_TR_F1),
-                                                                                      np.mean(total_UR_F1)))
 
+    else:
+        with open("Eventsplit_details.txt","r") as eventsplitfile:
+            eventsplits = json.load(eventsplitfile)
+        treeDic = {} # Won't be using this...
+        for event in eventsplits:
+            print("-"*25,event,"-"*25)
+            testfold = eventsplits[event]
+            trainfold = []
+            for notevent in eventsplits:
+                if notevent==event:
+                    continue
+                trainfold.extend(eventsplits[notevent])
+            # for iter in range(iterations):
+            train_losses, val_losses, train_accs, val_accs0, accs0, F1_0, F2_0, F3_0, F4_0 = train_model(treeDic, testfold, trainfold, args, 0,commentary=event)
+            test_accs.append(accs0)
+            NR_F1.append(F1_0)
+            FR_F1.append(F2_0)
+            TR_F1.append(F3_0)
+            UR_F1.append(F4_0)
+            print("LOOP COMPLETED: EVENT- ",event)
+        print("OVERALL RESULTS FOR :",event)
+        print("Total_Test_Accuracy: {:.4f}|NR F1: {:.4f}|FR F1: {:.4f}|TR F1: {:.4f}|UR F1: {:.4f}".format(
+        sum(test_accs) / iterations, sum(NR_F1) /iterations, sum(FR_F1) /iterations, sum(TR_F1) / iterations, sum(UR_F1) / iterations))
 

@@ -1,4 +1,14 @@
 # EBGCN
+DO THIS FOR PHEME (after Shaun's NAUGHTY Hijack)
+
+```python main_ebgcn.py --datasetname PHEME 1> PHEME_training_output.txt 2>&1```
+
+else:
+
+```python main_ebgcn.py ```
+
+is sufficient
+
 
 The PyTorch implementation for the [paper](https://arxiv.org/pdf/2107.11934.pdf): Towards Propagation Uncertainty: Edge-enhanced Bayesian Graph Convolutional Networks for Rumor Detection
  
