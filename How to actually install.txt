@@ -1,0 +1,96 @@
+The installation process is identical to bigcn. For convenience, this is copied here.
+Keep in mind the original code reports results via batch wise averaged results. 
+The results are hence inaccurate as compared to overall results.
+There is also the issue that their pheme dataset uses 3 class split when pheme is naturally only 4 or 2.
+So we don't know if "True rumours" = Rumour + True or Rumour+ False (using the veracity annotations.)
+No point investigating either because like Bigcn the original code is incorrect in how it reports results.
+
+
+You probably want to venv this because it toggles with versions of scikitlearn and other things.
+guys, cuda ISNT always back compatible. Stop fucking lying.
+
+
+To install torch (assuming you go with 1.7 instead of their 1.4 due to GPU compatibility), use:
+pip install torch==1.7.0+cu110 torchvision==0.8.1+cu110 torchaudio==0.7.0 -f https://download.pytorch.org/whl/torch_stable.html
+
+Do NOT use torchvision==0.8.0+cu110 the file does NOT exist as a "stable" version in their link.
+
+https://data.pyg.org/whl/ 
+    - Select your appropriate pytorch version link here, which then directs you to available BUILT wheels for cluster, sparse, scatter.
+    Ignore spline.
+    
+    python -m pip install <wheel name>
+    
+    
+torch_geometric can be installed via 
+    python -m pip install torch-geometric==2.0.0 
+    
+    DO NOT USE 1.3.2 as they CLAIMED. IT WONT RUN IF YOU DO THAT
+
+This is the approximation.
+
+Run:
+python -m pip install transformers==4.17.0 
+
+
+
+unzip their datafile, create other folders they need.
+
+run:
+
+unzip -d ./data/Weibo ./data/Weibo/weibotree.txt.zip
+
+# If required:
+mkdir .\data\Twitter15graph
+mkdir .\data\Twitter16graph
+mkdir .\data\weibograph
+
+
+In the home directory  (AND IT MUST BE THE HOME DIRECTORY)
+python ./Process/getWeibograph.py
+python ./Process/getTwittergraph.py Twitter15
+python ./Process/getTwittergraph.py Twitter16
+python ./model/Twitter/BiGC N_Twitter.py Twitter15 100
+
+
+In ./model/Twitter/BiGC N_Twitter.py and ./model/Weibo/BiGCN_Weibo.py
+
+Set num_workers to 0 for compatibility issues. This is due to their classes being UNPICKLEABLE.
+
+You also want to run Pheme_Tree_extraction.py, which can actually extract the entire pheme trees and stuff from
+all-rnr-annotated
+which is the pheme dataset. just leave all-rnr-annotated in the current folder with this. (without taking out the events)
+
+More customisation can be done to TRACE back the original words that were used...
+
+
+
+# for pheme, the numbers don't even matter, but leave it as 100. It'll only ever run one iteration.
+
+# Version for event splits, NO PICKLE
+python .\model\Twitter\BiGCN_Twitter.py PHEME 100 True whatever
+# Version for event splits, with pickle.
+python .\model\Twitter\BiGCN_Twitter.py PHEME 100 True pickle
+# Version for Folds, NO PICKLE 5 iterations of 5 fold splits. i.e model training process runs 5x5 = 25 times.
+python .\model\Twitter\BiGCN_Twitter.py PHEME 5 whatever whatever
+# Version for Folds, with pickle. 5 iterations of 5 fold splits. i.e model training process runs 5x5 = 25 times.
+python .\model\Twitter\BiGCN_Twitter.py PHEME 5 whatever pickle
+
+Handy Append to a file:
+ 1> output.txt 2>&1
+
+###################################################################################
+FORCE_ROOT_CONNETION in Pheme_Tree_extraction.py will dictate if you require the node to be connected
+by however many jumps to the root before you count it as part of the dataset.
+Manually toggleble. If you choose to change this, you must delete phemethreaddump.json and rerun.
+###################################################################################
+picklefear can be manually TOGGLED within BiGCN_Twitter.py, on line 252
+picklefear dictates whether you want to process ALL BERT embeds first and pickle it for future use.
+Due to pickle being insecure, this should be OFF by default
+(It will also consume a lot of space.)
+###################################################################################
+# EVENT SPLITS:
+You can also TOGGLE EVENT SPLITS via a boolean in bigcn_twitter, which then splits events out into test, while leaving the rest as train.
+###################################################################################
+
+<end> 
