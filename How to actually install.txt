@@ -7,7 +7,7 @@ No point investigating either because like Bigcn the original code is incorrect 
 
 
 You probably want to venv this because it toggles with versions of scikitlearn and other things.
-guys, cuda ISNT always back compatible. Stop fucking lying.
+guys, cuda ISNT always back compatible. 
 
 
 To install torch (assuming you go with 1.7 instead of their 1.4 due to GPU compatibility), use:
