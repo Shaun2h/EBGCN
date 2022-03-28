@@ -283,6 +283,8 @@ if __name__ == '__main__':
             eventsplits = json.load(eventsplitfile)
         treeDic = {} # Won't be using this...
         for event in eventsplits:
+            test_accs, NR_F1, FR_F1, TR_F1, UR_F1 = [], [], [], [], []
+
             print("-"*25,event,"-"*25)
             testfold = eventsplits[event]
             trainfold = []
