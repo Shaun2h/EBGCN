@@ -214,9 +214,9 @@ if __name__ == '__main__':
     parser.add_argument('--edge_num', type=int, default=2, metavar='edgenum', help='latent relation types T in the edge inference')
 
     args = parser.parse_args()
-    if args.datasetname.lower()=="pheme":
+    if "pheme" in args.datasetname.lower():
         args.input_features=768*256 # bert shape.
-        args.batchsize=12 # bert kinda thing.
+        args.batchsize=12 # explosion prevention
         
         
     if not args.no_cuda:
@@ -234,7 +234,35 @@ if __name__ == '__main__':
         treeDic={}
     else:
         treeDic = loadTree(args.datasetname)
-    if args.datasetname.lower()!="pheme":
+        
+    if "event" in args.datasetname.lower() and "pheme" in args.datasetname.lower():
+        with open("Eventsplit_details.txt","r") as eventsplitfile:
+            eventsplits = json.load(eventsplitfile)
+        treeDic = {} # Won't be using this...
+        for event in eventsplits:
+            test_accs, NR_F1, FR_F1, TR_F1, UR_F1 = [], [], [], [], []
+
+            print("-"*25,event,"-"*25)
+            testfold = eventsplits[event]
+            trainfold = []
+            for notevent in eventsplits:
+                if notevent==event:
+                    continue
+                trainfold.extend(eventsplits[notevent])
+            # for iter in range(iterations):
+            train_losses, val_losses, train_accs, val_accs0, accs0, F1_0, F2_0, F3_0, F4_0 = train_model(treeDic, testfold, trainfold, args, 0,commentary=event)
+            test_accs.append(accs0)
+            NR_F1.append(F1_0)
+            FR_F1.append(F2_0)
+            TR_F1.append(F3_0)
+            UR_F1.append(F4_0)
+            print("LOOP COMPLETED: EVENT- ",event)
+        print("OVERALL RESULTS FOR :",event)
+        print("Total_Test_Accuracy: {:.4f}|NR F1: {:.4f}|FR F1: {:.4f}|TR F1: {:.4f}|UR F1: {:.4f}".format(
+        sum(test_accs) / 1, sum(NR_F1) /1, sum(FR_F1) /1, sum(TR_F1) / 1, sum(UR_F1) / 1))
+
+
+    else:
         for iter in range(args.iterations):
             iter_timestamp = time()
             # fold_tests, fold_trains = load5foldData(args.datasetname)
@@ -278,29 +306,4 @@ if __name__ == '__main__':
                                                                                           np.mean(total_UR_F1)))
 
 
-    else:
-        with open("Eventsplit_details.txt","r") as eventsplitfile:
-            eventsplits = json.load(eventsplitfile)
-        treeDic = {} # Won't be using this...
-        for event in eventsplits:
-            test_accs, NR_F1, FR_F1, TR_F1, UR_F1 = [], [], [], [], []
-
-            print("-"*25,event,"-"*25)
-            testfold = eventsplits[event]
-            trainfold = []
-            for notevent in eventsplits:
-                if notevent==event:
-                    continue
-                trainfold.extend(eventsplits[notevent])
-            # for iter in range(iterations):
-            train_losses, val_losses, train_accs, val_accs0, accs0, F1_0, F2_0, F3_0, F4_0 = train_model(treeDic, testfold, trainfold, args, 0,commentary=event)
-            test_accs.append(accs0)
-            NR_F1.append(F1_0)
-            FR_F1.append(F2_0)
-            TR_F1.append(F3_0)
-            UR_F1.append(F4_0)
-            print("LOOP COMPLETED: EVENT- ",event)
-        print("OVERALL RESULTS FOR :",event)
-        print("Total_Test_Accuracy: {:.4f}|NR F1: {:.4f}|FR F1: {:.4f}|TR F1: {:.4f}|UR F1: {:.4f}".format(
-        sum(test_accs) / iterations, sum(NR_F1) /iterations, sum(FR_F1) /iterations, sum(TR_F1) / iterations, sum(UR_F1) / iterations))
-
+    

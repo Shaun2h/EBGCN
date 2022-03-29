@@ -1,7 +1,14 @@
 # EBGCN
-DO THIS FOR PHEME (after Shaun's NAUGHTY Hijack)
 
-```python main_ebgcn.py --datasetname PHEME 1> PHEME_training_output.txt 2>&1```
+Keep in mind the original code reports results via batch wise averaged results for F1. <br>
+The results are hence inaccurate as compared to overall results.<br>
+There is also the issue that their pheme dataset uses 3 class split when pheme is naturally only 4 or 2.<br>
+So we don't know if "True rumours" = Rumour + True or Rumour+ False (using the veracity annotations.)<br>
+No point investigating either because like Bigcn the original code is incorrect in how it reports results.<br>
+
+DO THIS FOR PHEME (after Shaun's NAUGHTY Hijack)
+```python main_ebgcn.py --datasetname PHEMEevent 1> PHEME_training_output.txt 2>&1```
+```python main_ebgcn.py --datasetname PHEMEsplits 1> PHEME_training_output.txt 2>&1```
 
 else:
 

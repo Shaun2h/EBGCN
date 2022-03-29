@@ -1,9 +1,5 @@
 The installation process is identical to bigcn. For convenience, this is copied here.
-Keep in mind the original code reports results via batch wise averaged results. 
-The results are hence inaccurate as compared to overall results.
-There is also the issue that their pheme dataset uses 3 class split when pheme is naturally only 4 or 2.
-So we don't know if "True rumours" = Rumour + True or Rumour+ False (using the veracity annotations.)
-No point investigating either because like Bigcn the original code is incorrect in how it reports results.
+
 
 
 You probably want to venv this because it toggles with versions of scikitlearn and other things.
@@ -66,7 +62,8 @@ More customisation can be done to TRACE back the original words that were used..
 
 
 For pheme....
-python main_ebgcn.py --datasetname PHEME 1> PHEME_training_output.txt 2>&1
+python main_ebgcn.py --datasetname PHEMEevents 1> PHEME_training_output.txt 2>&1
+python main_ebgcn.py --datasetname PHEMEsplits 1> PHEME_training_output.txt 2>&1
 
 for original
 python main_ebgcn.py
