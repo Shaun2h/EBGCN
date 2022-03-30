@@ -217,7 +217,7 @@ if __name__ == '__main__':
     if "pheme" in args.datasetname.lower():
         args.input_features=768*256 # bert shape.
         args.batchsize=12 # explosion prevention
-        
+        args.iterations=1 # just not do that iterations thing.
         
     if not args.no_cuda:
         print('Running on GPU:{}'.format(args.num_cuda))
