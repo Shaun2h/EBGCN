@@ -271,7 +271,7 @@ if __name__ == '__main__':
             accs, NR_F1, FR_F1, TR_F1, UR_F1 = [], [], [], [], []
             for fold_idx in range(5):
                 fold_timestamp = time()
-                _, __, ___, ____, acc, F1, F2, F3, F4 = train_model(treeDic, fold_tests[fold_idx], fold_trains[fold_idx], args, iter)
+                _, __, ___, ____, acc, F1, F2, F3, F4 = train_model(treeDic, fold_tests[fold_idx], fold_trains[fold_idx], args, iter,"fold_"+str(fold_idx)+"_Iter_"+str(iter))
                 accs.append(acc)
                 NR_F1.append(F1)
                 FR_F1.append(F2)
