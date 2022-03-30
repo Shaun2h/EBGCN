@@ -124,7 +124,7 @@ def train_model(treeDic, x_test, x_train, args, iter,commentary=""):
         
         
         early_stopping(np.mean(temp_val_losses), np.mean(temp_val_accs), np.mean(temp_val_F1), np.mean(temp_val_F2),
-                       np.mean(temp_val_F3), np.mean(temp_val_F4), model, 'ebgcn', args.datasetname+" "+commentary)
+                       np.mean(temp_val_F3), np.mean(temp_val_F4), model, 'ebgcn', args.datasetname+" "+commentary,rawcounts,epoch)
         accs = np.mean(temp_val_accs)
         F1 = np.mean(temp_val_F1)
         F2 = np.mean(temp_val_F2)

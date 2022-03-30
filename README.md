@@ -5,6 +5,7 @@ The results are hence inaccurate as compared to overall results.<br>
 There is also the issue that their pheme dataset uses 3 class split when pheme is naturally only 4 or 2.<br>
 So we don't know if "True rumours" = Rumour + True or Rumour+ False (using the veracity annotations.)<br>
 No point investigating either because like Bigcn the original code is incorrect in how it reports results.<br>
+forced_parser.py can be run on an output file (see it's description string inside) and it will give you a quick comparison between actual and their reported version. The issue is minor but an issue nonetheless <br>
 
 DO THIS FOR PHEME (after Shaun's NAUGHTY Hijack)
 ```python main_ebgcn.py --datasetname PHEMEevent 1> PHEME_training_output.txt 2>&1```
