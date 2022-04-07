@@ -17,6 +17,8 @@ else:
 
 is sufficient
 
+Note that: ```ebgcn_predict_all.py ``` has an example within for usage on single instances. (requires a tree) Otherwise it is PHEME only, and requires the actual files.bigcn_predict_all.py
+
 
 The PyTorch implementation for the [paper](https://arxiv.org/pdf/2107.11934.pdf): Towards Propagation Uncertainty: Edge-enhanced Bayesian Graph Convolutional Networks for Rumor Detection
  
