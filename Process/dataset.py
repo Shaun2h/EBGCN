@@ -28,8 +28,8 @@ def get_td_bu_edges(tddroprate,budroprate,edge_index_matrix):
         row = list(edge_index_matrix[0])
         col = list(edge_index_matrix[1])
         length = len(row)
-        # poslist = random.sample(range(length), int(length * (1 - self.tddroprate)))
-        poslist = random.sample(range(length), int(length * (1)))
+        poslist = random.sample(range(length), int(length * (1 - tddroprate)))
+        # poslist = random.sample(range(length), int(length * (1)))
         poslist = sorted(poslist)
         row = list(np.array(row)[poslist])
         col = list(np.array(col)[poslist])
@@ -41,8 +41,8 @@ def get_td_bu_edges(tddroprate,budroprate,edge_index_matrix):
     bucol = list(edge_index_matrix[0])
     if budroprate > 0:
         length = len(burow)
-        # poslist = random.sample(range(length), int(length * (1 - self.budroprate)))
-        poslist = random.sample(range(length), int(length * (1)))
+        poslist = random.sample(range(length), int(length * (1 - budroprate)))
+        # poslist = random.sample(range(length), int(length * (1)))
         poslist = sorted(poslist)
         row = list(np.array(burow)[poslist])
         col = list(np.array(bucol)[poslist])
@@ -163,6 +163,10 @@ class bigraph_dataset_PHEME(Dataset):
         Process a Thread in Shaun's Format to their required format so we can use a similar loading func like they do.
         """
         threadtextlist,tree,rootlabel,source_id = somethread
+        # tree = {0:[1,2],1:[3],2:[],3:[]}
+        # threadtextlist = [("First Tweet was about how we did stuff",0),("Second Tweet was reminiscing about how we did stuff",1),("Third Tweet was on something he missed on the thing.",2),("Fourth Tweet was about how second tweet could also think about something else.",3)]
+        # source_id = 0
+        # rootlabel = [0]
             # break
             # if donecounter>400:
                 # break
@@ -288,6 +292,7 @@ class bigraph_dataset_PHEME(Dataset):
                 print("won't crash on cpu for some reason. BUT EVENTUALLY RESULTS IN CUDA DEVICE ASSERTION ERROR DUE TO INDEXING.")
         except IndexError:
             pass # can't violate if dim 0 is EMPTY.
+            
     def __getitem__(self, index):
         """
         get item via index. Mimic verison.

@@ -17,6 +17,7 @@ from model.EBGCN import EBGCN
 
 def train_model(treeDic, x_test, x_train, args, iter,commentary=""):
     model = EBGCN(args).to(args.device)
+
     TD_params = list(map(id, model.TDrumorGCN.conv1.parameters()))
     TD_params += list(map(id, model.TDrumorGCN.conv2.parameters()))
     BU_params = list(map(id, model.BUrumorGCN.conv1.parameters()))
@@ -46,6 +47,7 @@ def train_model(treeDic, x_test, x_train, args, iter,commentary=""):
         batch_idx = 0
         for Batch_data in train_loader:
             Batch_data.to(args.device)
+            print(Batch_data.batch)
             # print(Batch_data)
             out_labels,  TD_edge_loss, BU_edge_loss = model(Batch_data)
             loss = F.nll_loss(out_labels, Batch_data.y)
@@ -230,7 +232,7 @@ if __name__ == '__main__':
     init_seeds(seed=args.seed)
 
     total_accs, total_NR_F1, total_FR_F1, total_TR_F1, total_UR_F1 = [], [], [], [], []
-    if args.datasetname.lower()=="pheme":
+    if "pheme" in args.datasetname.lower():
         treeDic={}
     else:
         treeDic = loadTree(args.datasetname)
