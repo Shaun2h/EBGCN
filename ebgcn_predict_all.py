@@ -3,6 +3,7 @@ import argparse
 import json
 import csv
 import pprint
+from datetime import datetime
 from time import time
 sys.path.append(os.getcwd())
 import torch
@@ -20,7 +21,7 @@ It also REQUIRES the pheme dataset's files within the directory to run.
 """
 
 
-model_load_name = "ebgcnPHEME ottawashooting.m"
+model_load_name = "ebgcnPHEME fold_4_iter_0.m"
 def process_thread(somethread,returnalt=False):
         """
         Process a Thread in Shaun's Format to their required format so we can use a similar loading func like they do.
@@ -122,8 +123,8 @@ def run_model(tree,threadtextlist, source_id, rootlabel, model):
     output_data.to(device)
 
 
-    
-    val_out, _, _ = model(output_data)
+    with torch.no_grad():
+        val_out, _, _ = model(output_data)
     _, pred = val_out.max(dim=-1)
 
     # print(val_out)
@@ -247,12 +248,14 @@ if __name__ == '__main__':
         # print(rootlabel)
         actual_label = "rumour" if rootlabel[0]==0 else "non-rumour"
         allthreads.append([source_id,prediction,actual_label])
-        
+
         
 
     mainpath = os.path.join("all-rnr-annotated-threads")
     path_reference_dict = {}
     for eventwrap in os.listdir(mainpath):
+        if eventwrap[0] == ".":
+            continue
         for item in os.listdir(os.path.join(mainpath,eventwrap,"rumours")):
             if item[0]==".":
                 continue
@@ -277,7 +280,7 @@ if __name__ == '__main__':
             text = loaded_source["text"]
             source_id = loaded_source["id"]
             links = []
-            tree_dict[source_id] = [text,source_id,links]
+            tree_dict[source_id] = [text,source_id,links,predicted,actual,loaded_source["created_at"],loaded_source["user"]["screen_name"]]
             
         for item in list_of_reactions:
             if item[0] == ".":
@@ -292,36 +295,42 @@ if __name__ == '__main__':
                 retweetedornot = reaction_dict["retweeted"]
                 
                 if not reactionid in tree_dict:
-                    tree_dict[reactionid] = [reactiontext,reactionid,links]
+                    tree_dict[reactionid] = [reactiontext,reactionid,links,predicted,actual,reaction_dict["created_at"],reaction_dict["user"]["screen_name"]]
                 else:
-                    tree_dict[reactionid] = [reactiontext,reactionid,tree_dict[reactionid][2]]
+                    tree_dict[reactionid] = [reactiontext,reactionid,tree_dict[reactionid][2],predicted,actual,reaction_dict["created_at"],reaction_dict["user"]["screen_name"]]
                 
                 if reaction_target!="null":
                     if not reaction_target in tree_dict:
-                        tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Reply"]]]
-                        tree_dict[reactionid][2].append([reactionid,reaction_target,"Reply"])
+                        tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Reply"]],None,None,None,None]
                     else:
                         tree_dict[reaction_target][2].append([reactionid,reaction_target,"Reply"])
-                        tree_dict[reactionid][2].append([reactionid,reaction_target,"Reply"])
+                    tree_dict[reactionid][2].append([reactionid,reaction_target,"Reply"])
                         
                         
                 if retweetedornot:
                     if not reaction_target in tree_dict:
-                        tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Retweet"]]]
-                        tree_dict[reactionid][2].append([reactionid,reaction_target,"Retweet"])
+                        tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Retweet"]],None,None,None,None]
                     else:
                         tree_dict[reaction_target][2].append([reactionid,reaction_target,"Retweet"])
-                        tree_dict[reactionid][2].append([reactionid,reaction_target,"Retweet"])
+                    tree_dict[reactionid][2].append([reactionid,reaction_target,"Retweet"])
                     
 
         treelist.append(tree_dict)
     
     with open(model_load_name+"_ebgcn_all_predictions_dump.json","w",encoding="utf-8") as treedumpfile:
         # csvwriter = csv.writer(treedumpfile)
-        fieldnames = ["Text","ID","Links"]
+        fieldnames = ["Text","ID","Links","predicted","actual","timestamp","handle"]
         csvwriter = csv.DictWriter(treedumpfile, fieldnames=fieldnames)
         csvwriter.writeheader()
         for treeid in treelist:
             for node in treeid:
-                csvwriter.writerow({"Text":treeid[node][0], "ID":treeid[node][1], "Links":treeid[node][2]})
+
+                timestampval = str(treeid[node][5])
+                if timestampval!="None":
+                # "Wed Jan 07 11:11:33 +0000 2015" -> 2012-02-23 09:15:26 +00:00
+                    date = datetime.strptime(timestampval,"%a %b %d %H:%M:%S %z %Y").strftime("%Y-%m-%d %H:%M:%S %z")
+                else:
+                    date = "None"
+                
+                csvwriter.writerow({"Text":treeid[node][0], "ID":treeid[node][1], "Links":treeid[node][2],"predicted":treeid[node][3],"actual":treeid[node][4],"timestamp":treeid[node][5],"handle":treeid[node][6]})
     print("Dumped:",model_load_name+"_ebgcn_all_predictions_dump.json")
