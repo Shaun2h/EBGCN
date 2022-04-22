@@ -1,4 +1,10 @@
 # EBGCN
+We use BERT embeddings (bert-base-multilingual-uncased) instead of the unknown and irreproducible Ma Jing Embeds of Twitter15/16.
+Since we cannot reproduce those, and half the tweets are missing, and a lot of her embeds have more tweets in the processed version than in the reported tree,
+we change datasets to PHEME. 
+
+(That's the point of this entire github repo)
+
 
 Keep in mind the original code reports results via batch wise averaged results for F1. <br>
 The results are hence inaccurate as compared to overall results.<br>
