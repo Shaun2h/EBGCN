@@ -140,6 +140,8 @@ def run_model(tree,threadtextlist, source_id, rootlabel, model):
 
 
 if __name__ == '__main__':
+    detailed_link_appending = False
+
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--datasetname', type=str, default="Twitter16", metavar='dataname',
@@ -247,7 +249,7 @@ if __name__ == '__main__':
         prediction = "rumour" if pred==0 else "non-rumour"
         # print(rootlabel)
         actual_label = "rumour" if rootlabel[0]==0 else "non-rumour"
-        allthreads.append([source_id,prediction,actual_label])
+        allthreads.append([source_id,prediction,actual_label,val_out])
 
         
 
@@ -270,7 +272,7 @@ if __name__ == '__main__':
         treeid = i[0]
         predicted = i[1]
         actual = i[2]
-        
+        prediction_value = i[3]
         readable = ['false', 'true', 'unverified']
         tree_path = path_reference_dict[str(treeid)]
         list_of_reactions = os.listdir(os.path.join(tree_path,"reactions"))
@@ -280,7 +282,7 @@ if __name__ == '__main__':
             text = loaded_source["text"]
             source_id = loaded_source["id"]
             links = []
-            tree_dict[source_id] = [text,source_id,links,predicted,actual,loaded_source["created_at"],loaded_source["user"]["screen_name"]]
+            tree_dict[source_id] = [text,source_id,links,predicted,actual,loaded_source["created_at"],loaded_source["user"]["screen_name"],prediction_value]
             
         for item in list_of_reactions:
             if item[0] == ".":
@@ -294,32 +296,41 @@ if __name__ == '__main__':
                 reaction_target = reaction_dict["in_reply_to_status_id"]
                 retweetedornot = reaction_dict["retweeted"]
                 
-                if not reactionid in tree_dict:
-                    tree_dict[reactionid] = [reactiontext,reactionid,links,predicted,actual,reaction_dict["created_at"],reaction_dict["user"]["screen_name"]]
-                else:
-                    tree_dict[reactionid] = [reactiontext,reactionid,tree_dict[reactionid][2],predicted,actual,reaction_dict["created_at"],reaction_dict["user"]["screen_name"]]
                 
-                if reaction_target!="null":
+                if not reactionid in tree_dict:
+                    tree_dict[reactionid] = [reactiontext,reactionid,links,predicted,actual,reaction_dict["created_at"],reaction_dict["user"]["screen_name"],prediction_value]
+                else:
+                    tree_dict[reactionid] = [reactiontext,reactionid,tree_dict[reactionid][2],predicted,actual,reaction_dict["created_at"],reaction_dict["user"]["screen_name"],prediction_value]
+                
+                if not detailed_link_appending:
                     if not reaction_target in tree_dict:
-                        tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Reply"]],None,None,None,None]
+                        tree_dict[reaction_target] = [None,reaction_target,[reactionid],None,None,None,None,None]
                     else:
-                        tree_dict[reaction_target][2].append([reactionid,reaction_target,"Reply"])
-                    tree_dict[reactionid][2].append([reactionid,reaction_target,"Reply"])
-                        
-                        
-                if retweetedornot:
-                    if not reaction_target in tree_dict:
-                        tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Retweet"]],None,None,None,None]
-                    else:
-                        tree_dict[reaction_target][2].append([reactionid,reaction_target,"Retweet"])
-                    tree_dict[reactionid][2].append([reactionid,reaction_target,"Retweet"])
+                        tree_dict[reaction_target][2].append(reactionid)
+                    tree_dict[reactionid][2].append(reaction_target)
+                
+                else:
+                    if reaction_target!="null":
+                        if not reaction_target in tree_dict:
+                            tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Reply"]],None,None,None,None,None]
+                        else:
+                            tree_dict[reaction_target][2].append([reactionid,reaction_target,"Reply"])
+                        tree_dict[reactionid][2].append([reactionid,reaction_target,"Reply"])
+                            
+                            
+                    if retweetedornot:
+                        if not reaction_target in tree_dict:
+                            tree_dict[reaction_target] = [None,reaction_target,[[reactionid,reaction_target,"Retweet"]],None,None,None,None,None]
+                        else:
+                            tree_dict[reaction_target][2].append([reactionid,reaction_target,"Retweet"])
+                        tree_dict[reactionid][2].append([reactionid,reaction_target,"Retweet"])
                     
 
         treelist.append(tree_dict)
     
     with open(model_load_name+"_ebgcn_all_predictions_dump.json","w",encoding="utf-8") as treedumpfile:
         # csvwriter = csv.writer(treedumpfile)
-        fieldnames = ["Text","ID","Links","predicted","actual","timestamp","handle"]
+        fieldnames = ["tweet_id","handle","text","tweet_type","is_misinformation","tweet_time","edges","actual","scoring"]
         csvwriter = csv.DictWriter(treedumpfile, fieldnames=fieldnames)
         csvwriter.writeheader()
         for treeid in treelist:
@@ -332,5 +343,5 @@ if __name__ == '__main__':
                 else:
                     date = "None"
                 
-                csvwriter.writerow({"Text":treeid[node][0], "ID":treeid[node][1], "Links":treeid[node][2],"predicted":treeid[node][3],"actual":treeid[node][4],"timestamp":treeid[node][5],"handle":treeid[node][6]})
+                csvwriter.writerow({"text":treeid[node][0], "tweet_id":treeid[node][1], "edges":treeid[node][2],"is_misinformation":treeid[node][3],"actual":treeid[node][4],"tweet_time":treeid[node][5],"handle":treeid[node][6],"scoring":treeid[node][7]})
     print("Dumped:",model_load_name+"_ebgcn_all_predictions_dump.json")
