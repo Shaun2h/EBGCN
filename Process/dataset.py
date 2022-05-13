@@ -323,7 +323,7 @@ class bigraph_dataset_PHEME(Dataset):
         # 3 = ['unverified']
         
         edgeindex = data['edgeindex']
-        self.check_violations(data) # for your information.
+        # self.check_violations(data) # for your information.
 
         # print(data["x"].shape)
         new_edgeindex, bunew_edgeindex = get_td_bu_edges(self.tddroprate,self.budroprate,edgeindex)

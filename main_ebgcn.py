@@ -47,7 +47,7 @@ def train_model(treeDic, x_test, x_train, args, iter,commentary=""):
         batch_idx = 0
         for Batch_data in train_loader:
             Batch_data.to(args.device)
-            print(Batch_data.batch)
+            # print(Batch_data.batch)
             # print(Batch_data)
             out_labels,  TD_edge_loss, BU_edge_loss = model(Batch_data)
             loss = F.nll_loss(out_labels, Batch_data.y)
