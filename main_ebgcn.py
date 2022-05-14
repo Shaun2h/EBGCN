@@ -37,11 +37,11 @@ def train_model(treeDic, x_test, x_train, args, iter,commentary=""):
     train_accs = []
     val_accs = []
     early_stopping = EarlyStopping(patience=args.patience, verbose=True)
-
+    traindata_list, testdata_list = loadBiData(args.datasetname, treeDic, x_train, x_test, args.TDdroprate, args.BUdroprate)
+    train_loader = DataLoader(traindata_list, batch_size=args.batchsize, shuffle=True, num_workers=args.num_workers)
+    test_loader = DataLoader(testdata_list, batch_size=args.batchsize, shuffle=False, num_workers=args.num_workers)
+        
     for epoch in range(args.n_epochs):
-        traindata_list, testdata_list = loadBiData(args.datasetname, treeDic, x_train, x_test, args.TDdroprate, args.BUdroprate)
-        train_loader = DataLoader(traindata_list, batch_size=args.batchsize, shuffle=True, num_workers=args.num_workers)
-        test_loader = DataLoader(testdata_list, batch_size=args.batchsize, shuffle=False, num_workers=args.num_workers)
         avg_loss = []
         avg_acc = []
         batch_idx = 0
